@@ -27,6 +27,7 @@ public class HudManager {
     private BossBar bossBar;
     private int taskId = -1;
     private final Map<UUID, Scoreboard> playerScoreboards = new HashMap<>();
+    private final Map<UUID, Set<String>> hiddenSections = new HashMap<>();
 
     public HudManager(HakoRunPlugin plugin) {
         this.plugin = plugin;
@@ -108,16 +109,23 @@ public class HudManager {
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         // 사이드바 항목 문자열의 §코드는 클라이언트가 렌더링하는 가짜 플레이어명이므로 그대로 유지
+        UUID uuid = player.getUniqueId();
+        Set<String> hidden = hiddenSections.getOrDefault(uuid, Set.of());
         int score = 15;
         setScore(obj, "§7", score--);
         setScore(obj, "§e상태: §f" + formatState(state), score--);
+        if (!hidden.contains("policy")) {
+            setScore(obj, "§e정책: §f" + plugin.getConfigManager().getLifePolicy().getDisplayName(), score--);
+        }
 
         setScore(obj, "§6§m          ", score--);
         setScore(obj, "§a승리: §f" + wins, score--);
         setScore(obj, "§c실패: §f" + resets, score--);
 
-        int onlineInRun = countPlayersInRun(session);
-        setScore(obj, "§d생존: §f" + onlineInRun + "명", score--);
+        if (!hidden.contains("alive")) {
+            int onlineInRun = countPlayersInRun(session);
+            setScore(obj, "§d생존: §f" + onlineInRun + "명", score--);
+        }
         setScore(obj, "§7 ", score--);
 
         // Assign the scoreboard to the player only when they don't already hold it
@@ -187,6 +195,18 @@ public class HudManager {
             }
         }
         return count;
+    }
+
+    public void toggleSection(Player player, String section) {
+        UUID uuid = player.getUniqueId();
+        Set<String> hidden = hiddenSections.computeIfAbsent(uuid, k -> new HashSet<>());
+        if (hidden.remove(section)) {
+            player.sendMessage(Component.text("[HakoRun] '" + section + "' 섹션을 표시합니다.").color(NamedTextColor.GREEN));
+        } else {
+            hidden.add(section);
+            player.sendMessage(Component.text("[HakoRun] '" + section + "' 섹션을 숨겼습니다.").color(NamedTextColor.YELLOW));
+        }
+        updateAll();
     }
 
     public void addPlayerToBossBar(Player player) {
