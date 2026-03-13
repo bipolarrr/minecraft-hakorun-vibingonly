@@ -43,6 +43,7 @@ public class HakoRunCommand implements CommandExecutor, TabCompleter {
                 case "lobby" -> handleLobby(sender);
                 case "ui" -> handleUi(sender);
                 case "sidebar" -> handleSidebar(sender, args);
+                case "rejoin" -> handleRejoin(sender);
                 case "mode" -> handleMode(sender, args);
                 case "lives" -> handleLives(sender, args);
                 case "setlobby" -> handleSetLobby(sender);
@@ -114,6 +115,31 @@ public class HakoRunCommand implements CommandExecutor, TabCompleter {
             return;
         }
         plugin.getHudManager().toggleHud(player);
+    }
+
+    private void handleRejoin(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(Component.text("플레이어만 사용 가능합니다.").color(NamedTextColor.RED));
+            return;
+        }
+        RunState state = plugin.getRunManager().getCurrentState();
+        if (state != RunState.RUNNING) {
+            sender.sendMessage(Component.text("[HakoRun] 현재 진행 중인 런이 없습니다.").color(NamedTextColor.RED));
+            return;
+        }
+        RunSession session = plugin.getRunManager().getCurrentSession();
+        if (session == null) {
+            sender.sendMessage(Component.text("[HakoRun] 세션 정보를 찾을 수 없습니다.").color(NamedTextColor.RED));
+            return;
+        }
+        org.bukkit.World overworld = plugin.getWorldManager().getRunOverworld(session);
+        if (overworld == null) {
+            sender.sendMessage(Component.text("[HakoRun] 런 월드가 아직 준비되지 않았습니다.").color(NamedTextColor.RED));
+            return;
+        }
+        player.teleport(overworld.getSpawnLocation());
+        player.setGameMode(org.bukkit.GameMode.SURVIVAL);
+        player.sendMessage(Component.text("[HakoRun] 런 월드로 재입장했습니다.").color(NamedTextColor.GREEN));
     }
 
     private void handleSidebar(CommandSender sender, String[] args) {
@@ -282,6 +308,7 @@ public class HakoRunCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(Component.text("/hakorun status ").color(NamedTextColor.YELLOW).append(Component.text("- 현재 상태 확인").color(NamedTextColor.GRAY)));
         sender.sendMessage(Component.text("/hakorun lobby ").color(NamedTextColor.YELLOW).append(Component.text("- 로비로 이동").color(NamedTextColor.GRAY)));
         sender.sendMessage(Component.text("/hakorun ui ").color(NamedTextColor.YELLOW).append(Component.text("- HUD on/off").color(NamedTextColor.GRAY)));
+        sender.sendMessage(Component.text("/hakorun rejoin ").color(NamedTextColor.YELLOW).append(Component.text("- 진행 중인 런 월드로 재입장").color(NamedTextColor.GRAY)));
         sender.sendMessage(Component.text("/hakorun sidebar <policy|alive> ").color(NamedTextColor.YELLOW).append(Component.text("- 사이드바 섹션 개인 토글").color(NamedTextColor.GRAY)));
         sender.sendMessage(Component.text("/hakorun mode <MODE> ").color(NamedTextColor.YELLOW).append(Component.text("- 런 모드 변경").color(NamedTextColor.GRAY)));
         sender.sendMessage(Component.text("/hakorun lives ... ").color(NamedTextColor.YELLOW).append(Component.text("- 목숨 관리").color(NamedTextColor.GRAY)));
@@ -310,7 +337,7 @@ public class HakoRunCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         if (args.length == 1) {
-            return Arrays.asList("start", "reset", "status", "lobby", "ui", "sidebar", "mode", "lives", "setlobby", "revealdeaths", "cleanup");
+            return Arrays.asList("start", "reset", "status", "lobby", "ui", "rejoin", "sidebar", "mode", "lives", "setlobby", "revealdeaths", "cleanup");
         }
         if (args.length == 2) {
             switch (args[0].toLowerCase()) {
