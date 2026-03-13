@@ -1,0 +1,27 @@
+# HakoRun 설정 파일
+lobbyWorld: world
+lobbySpawnX: 0.5
+lobbySpawnY: 64.0
+lobbySpawnZ: 0.5
+lobbySpawnYaw: 0.0
+lobbySpawnPitch: 0.0
+
+sharedLives: 3
+mode: TEAM_SHARED_LIVES
+lifePolicy: SHARED_POOL
+deathMessageMode: REVEAL_ON_WIPE
+
+deleteOldRunWorlds: true
+runStartCountdownSeconds: 5
+useBossBarTimer: false
+useActionBarTimer: true
+
+seed:
+  random: true
+  fixedSeed: 0
+
+hooks:
+  onRunStart: []
+  onPlayerDeathInRun: []
+  onRunFail: []
+  onRunWin: []

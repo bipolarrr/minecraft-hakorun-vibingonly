@@ -1,0 +1,20 @@
+name: HakoRun
+version: ${project.version}
+main: com.example.hakorun.HakoRunPlugin
+api-version: '1.21'
+description: 하코런(하드코어 엔더런) 콘텐츠 자동 운영 플러그인
+authors: [HakoRun]
+
+commands:
+  hakorun:
+    description: HakoRun 메인 명령어
+    usage: /hakorun <subcommand>
+    aliases: [hr]
+
+permissions:
+  hakorun.admin:
+    description: HakoRun 관리자 권한
+    default: op
+  hakorun.player:
+    description: HakoRun 플레이어 권한
+    default: true
