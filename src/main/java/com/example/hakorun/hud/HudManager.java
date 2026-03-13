@@ -90,7 +90,17 @@ public class HudManager {
 
     private void updateScoreboard(Player player, RunSession session, RunState state, int wins, int resets) {
         ScoreboardManager sbm = Bukkit.getScoreboardManager();
-        Scoreboard sb = sbm.getNewScoreboard();
+
+        // Reuse the same Scoreboard instance per player so the client does not receive
+        // a full scoreboard-replace packet on every tick.  Only the objective is torn
+        // down and rebuilt, which sends cheaper, targeted objective-level packets and
+        // guarantees the sidebar reflects the current authoritative state immediately.
+        Scoreboard sb = playerScoreboards.computeIfAbsent(
+                player.getUniqueId(), k -> sbm.getNewScoreboard());
+
+        // Remove the stale objective before rebuilding from fresh state.
+        Objective old = sb.getObjective("hakorun");
+        if (old != null) old.unregister();
 
         // [4] Component.text("§6§l◆...") → §코드 제거 후 Adventure API로 색상/장식 적용
         Objective obj = sb.registerNewObjective("hakorun", Criteria.DUMMY,
@@ -102,20 +112,6 @@ public class HudManager {
         setScore(obj, "§7", score--);
         setScore(obj, "§e상태: §f" + formatState(state), score--);
 
-        if (session != null) {
-            setScore(obj, "§e지구: §f" + session.getAttemptIndex() + "지구", score--);
-            int lives = plugin.getLifeManager().getDisplayLives(session, player.getUniqueId());
-            setScore(obj, "§c목숨: §f" + lives, score--);
-
-            if (state == RunState.RUNNING) {
-                long elapsed = (System.currentTimeMillis() - session.getRunStartTime()) / 1000;
-                setScore(obj, "§b시간: §f" + formatTime(elapsed), score--);
-            }
-        } else {
-            setScore(obj, "§e지구: §f-", score--);
-            setScore(obj, "§c목숨: §f-", score--);
-        }
-
         setScore(obj, "§6§m          ", score--);
         setScore(obj, "§a승리: §f" + wins, score--);
         setScore(obj, "§c실패: §f" + resets, score--);
@@ -124,8 +120,11 @@ public class HudManager {
         setScore(obj, "§d생존: §f" + onlineInRun + "명", score--);
         setScore(obj, "§7 ", score--);
 
-        player.setScoreboard(sb);
-        playerScoreboards.put(player.getUniqueId(), sb);
+        // Assign the scoreboard to the player only when they don't already hold it
+        // (first join, or after /hakorun ui re-enables the HUD).
+        if (player.getScoreboard() != sb) {
+            player.setScoreboard(sb);
+        }
     }
 
     private void setScore(Objective obj, String entry, int score) {
@@ -134,10 +133,14 @@ public class HudManager {
     }
 
     private void updateTimerDisplay(Player player, RunSession session) {
-        if (!plugin.getConfigManager().isUseActionBarTimer()) return;
         long elapsed = (System.currentTimeMillis() - session.getRunStartTime()) / 1000;
-        // [5] Component.text("§6⏱ ...") 에서 §6 제거 — Adventure는 §코드를 파싱하지 않음
-        player.sendActionBar(Component.text("⏱ " + formatTime(elapsed)).color(NamedTextColor.GOLD));
+        int lives = plugin.getLifeManager().getDisplayLives(session, player.getUniqueId());
+        int attempt = session.getAttemptIndex();
+        Component bar = Component.text("♥ " + lives)
+                .color(NamedTextColor.RED)
+                .append(Component.text("  ⏱ " + formatTime(elapsed)).color(NamedTextColor.GOLD))
+                .append(Component.text("  ↻ " + attempt + "지구").color(NamedTextColor.YELLOW));
+        player.sendActionBar(bar);
     }
 
     public void showTitle(Player player, Component title, Component subtitle) {
