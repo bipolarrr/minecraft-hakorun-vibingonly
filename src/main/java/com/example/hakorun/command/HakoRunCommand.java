@@ -85,7 +85,7 @@ public class HakoRunCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(Component.text("runId: ").color(NamedTextColor.YELLOW).append(Component.text(session.getRunId()).color(NamedTextColor.WHITE)));
             sender.sendMessage(Component.text("공유 목숨: ").color(NamedTextColor.YELLOW).append(Component.text(String.valueOf(session.getSharedLivesRemaining())).color(NamedTextColor.WHITE)));
             sender.sendMessage(Component.text("모드: ").color(NamedTextColor.YELLOW).append(Component.text(plugin.getConfigManager().getRunMode().name()).color(NamedTextColor.WHITE)));
-            sender.sendMessage(Component.text("목숨 정책: ").color(NamedTextColor.YELLOW).append(Component.text(plugin.getConfigManager().getLifePolicy().name()).color(NamedTextColor.WHITE)));
+            sender.sendMessage(Component.text("목숨 정책: ").color(NamedTextColor.YELLOW).append(Component.text(plugin.getConfigManager().getLifePolicy().getDisplayName()).color(NamedTextColor.WHITE)));
             if (state == RunState.RUNNING) {
                 long elapsed = (System.currentTimeMillis() - session.getRunStartTime()) / 1000;
                 sender.sendMessage(Component.text("생존 시간: ").color(NamedTextColor.YELLOW).append(Component.text(formatTime(elapsed)).color(NamedTextColor.WHITE)));
@@ -151,16 +151,16 @@ public class HakoRunCommand implements CommandExecutor, TabCompleter {
 
         switch (sub2) {
             case "mode" -> {
-                if (args.length < 3) { sender.sendMessage(Component.text("사용법: /hakorun lives mode <SHARED_POOL|PER_PLAYER>").color(NamedTextColor.RED)); return; }
+                if (args.length < 3) { sender.sendMessage(Component.text("사용법: /hakorun lives mode <인당 데스|공유목숨>").color(NamedTextColor.RED)); return; }
                 try {
-                    LifePolicy policy = LifePolicy.valueOf(args[2].toUpperCase());
+                    LifePolicy policy = LifePolicy.fromInput(args[2]);
                     plugin.getConfigManager().setLifePolicy(policy);
                     sender.sendMessage(Component.text("[HakoRun] 목숨 정책이 ").color(NamedTextColor.GREEN)
-                            .append(Component.text(policy.name()).color(NamedTextColor.WHITE))
+                            .append(Component.text(policy.getDisplayName()).color(NamedTextColor.WHITE))
                             .append(Component.text("으로 변경되었습니다.").color(NamedTextColor.GREEN)));
                     plugin.getHudManager().updateAll();
                 } catch (IllegalArgumentException e) {
-                    sender.sendMessage(Component.text("올바른 정책을 입력하세요: SHARED_POOL, PER_PLAYER").color(NamedTextColor.RED));
+                    sender.sendMessage(Component.text("올바른 정책을 입력하세요: 인당 데스, 공유목숨").color(NamedTextColor.RED));
                 }
             }
             case "shared" -> {
@@ -273,7 +273,7 @@ public class HakoRunCommand implements CommandExecutor, TabCompleter {
 
     private void sendLivesHelp(CommandSender sender) {
         sender.sendMessage(Component.text("[HakoRun] 목숨 명령어:").color(NamedTextColor.GOLD));
-        sender.sendMessage(Component.text("/hakorun lives mode <SHARED_POOL|PER_PLAYER>").color(NamedTextColor.YELLOW));
+        sender.sendMessage(Component.text("/hakorun lives mode <인당 데스|공유목숨>").color(NamedTextColor.YELLOW));
         sender.sendMessage(Component.text("/hakorun lives shared set <n>").color(NamedTextColor.YELLOW));
         sender.sendMessage(Component.text("/hakorun lives shared add <delta>").color(NamedTextColor.YELLOW));
         sender.sendMessage(Component.text("/hakorun lives player set <player> <n>").color(NamedTextColor.YELLOW));
@@ -301,7 +301,7 @@ public class HakoRunCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("lives")) {
             switch (args[1].toLowerCase()) {
-                case "mode" -> { return Arrays.asList("SHARED_POOL", "PER_PLAYER"); }
+                case "mode" -> { return Arrays.asList("인당 데스", "공유목숨"); }
                 case "shared" -> { return Arrays.asList("set", "add"); }
                 case "player" -> { return Arrays.asList("set", "add"); }
             }
