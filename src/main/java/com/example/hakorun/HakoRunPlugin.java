@@ -8,10 +8,14 @@ import com.example.hakorun.life.LifeManager;
 import com.example.hakorun.listener.DeathListener;
 import com.example.hakorun.listener.DragonListener;
 import com.example.hakorun.listener.PortalListener;
+import com.example.hakorun.model.RunState;
 import com.example.hakorun.run.RunManager;
 import com.example.hakorun.world.WorldManager;
 import com.example.hakorun.world.WorldOperationQueue;
 import com.example.hakorun.world.WorldTransitionService;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class HakoRunPlugin extends JavaPlugin {
@@ -50,6 +54,15 @@ public class HakoRunPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new DeathListener(this), this);
         getServer().getPluginManager().registerEvents(new PortalListener(this), this);
         getServer().getPluginManager().registerEvents(new DragonListener(this), this);
+        getServer().getPluginManager().registerEvents(new Listener() {
+            @EventHandler
+            public void onPlayerJoin(PlayerJoinEvent event) {
+                if (runManager.getCurrentState() == RunState.RUNNING) {
+                    hudManager.addPlayerToBossBar(event.getPlayer());
+                    hudManager.updateAll();
+                }
+            }
+        }, this);
 
         hudManager.startUpdateTask();
 

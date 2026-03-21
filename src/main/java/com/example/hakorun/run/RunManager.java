@@ -39,15 +39,19 @@ public class RunManager {
         String stateStr = data.getString("currentState", "LOBBY");
         try { currentState = RunState.valueOf(stateStr); } catch (Exception e) { currentState = RunState.LOBBY; }
 
-        // Recover session if it was RUNNING (mark as LOBBY since server restarted)
         if (data.contains("session")) {
             currentSession = deserializeSession(data.getConfigurationSection("session"));
             if (currentSession != null) {
-                // On restart, if state was RUNNING/PREPARING, set back to LOBBY since worlds may be gone
                 if (currentSession.getState() == RunState.RUNNING
+                        && plugin.getWorldManager().loadRunWorlds(currentSession)) {
+                    // Worlds still on disk — restore RUNNING state
+                    currentState = RunState.RUNNING;
+                    plugin.getLogger().info("[HakoRun] 런 세션 복구 성공 (RUNNING). runId=" + currentSession.getRunId());
+                } else if (currentSession.getState() == RunState.RUNNING
                         || currentSession.getState() == RunState.PREPARING_NEXT_RUN
                         || currentSession.getState() == RunState.READY_TO_TRANSFER) {
-                    plugin.getLogger().info("[HakoRun] 서버 재시작 후 이전 런 세션 복구 (상태: LOBBY). runId=" + currentSession.getRunId());
+                    // Worlds missing or mid-preparation — cannot restore
+                    plugin.getLogger().info("[HakoRun] 서버 재시작 후 런 세션 복구 불가 (상태: LOBBY). runId=" + currentSession.getRunId());
                     currentState = RunState.LOBBY;
                     currentSession.setState(RunState.LOBBY);
                 } else {

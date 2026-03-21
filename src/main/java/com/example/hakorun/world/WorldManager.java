@@ -74,6 +74,55 @@ public class WorldManager {
     }
 
     /**
+     * Re-loads existing run world folders after a server restart.
+     * Does not generate new chunks — only loads what is already on disk.
+     * Returns true if all three worlds are now loaded.
+     */
+    public boolean loadRunWorlds(RunSession session) {
+        String owName = session.getOverworldName();
+        String neName = session.getNetherName();
+        String enName = session.getEndName();
+
+        File container = Bukkit.getWorldContainer();
+        if (!new File(container, owName).isDirectory()
+                || !new File(container, neName).isDirectory()
+                || !new File(container, enName).isDirectory()) {
+            plugin.getLogger().warning("[HakoRun] 런 월드 폴더 없음, 복구 불가. runId=" + session.getRunId());
+            return false;
+        }
+
+        try {
+            World overworld = loadExistingWorld(owName, World.Environment.NORMAL);
+            if (overworld == null) { plugin.getLogger().severe("[HakoRun] Overworld 로드 실패: " + owName); return false; }
+
+            World nether = loadExistingWorld(neName, World.Environment.NETHER);
+            if (nether == null) { plugin.getLogger().severe("[HakoRun] Nether 로드 실패: " + neName); return false; }
+
+            World end = loadExistingWorld(enName, World.Environment.THE_END);
+            if (end == null) { plugin.getLogger().severe("[HakoRun] End 로드 실패: " + enName); return false; }
+
+            plugin.getLogger().info("[HakoRun] 런 월드 복구 완료 | " + owName + ", " + neName + ", " + enName);
+            return true;
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "[HakoRun] 런 월드 로드 중 예외", e);
+            return false;
+        }
+    }
+
+    private World loadExistingWorld(String name, World.Environment env) {
+        World existing = Bukkit.getWorld(name);
+        if (existing != null) return existing;
+        WorldCreator creator = new WorldCreator(name);
+        creator.environment(env);
+        World world = creator.createWorld();
+        if (world != null) {
+            world.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true);
+            world.setDifficulty(Difficulty.HARD);
+        }
+        return world;
+    }
+
+    /**
      * Safely unloads and optionally deletes run worlds.
      * Evacuates any players still in those worlds to lobby first.
      */
